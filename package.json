@@ -10,5 +10,8 @@
     "grunt-contrib-concat": "*",
     "grunt-contrib-uglify": "*",
     "jsdoc": "*"
+  },
+  "dependencies": {
+    "grunt": "1.0.1"
   }
 }

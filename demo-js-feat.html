@@ -1,0 +1,176 @@
+<!DOCTYPE >
+<HTML>
+
+<HEAD>
+    <META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8" />
+    <TITLE>Simple Demonstration of how WebGazer.js works</TITLE>
+    <style type="text/css">
+        #calibration_canvas {
+            display: none;
+        }
+        
+        .close {
+            position: fixed;
+            right: 32px;
+            top: 32px;
+            width: 32px;
+            height: 32px;
+            opacity: 0.9;
+            background-color:grey;
+        }
+        
+        .close:hover {
+            opacity: 1;
+        }
+        
+        .close:before,
+        .close:after {
+            position: fixed;
+            left: 15px;
+            content: ' ';
+            height: 33px;
+            width: 2px;
+            background-color: #333;
+        }
+        
+        .close:before {
+            transform: rotate(45deg);
+        }
+        
+        .close:after {
+            transform: rotate(-45deg);
+        }
+    </style>
+
+</HEAD>
+
+<BODY LANG="en-US" LINK="#0000ff" DIR="LTR">
+    <a href="#" class="close" id="close_button"></a>
+        <canvas id="calibration_canvas" />
+        <div id="mydiv">
+            <h1 style="color:#C0C0C0" align="right">
+                Click on a few locations within the screen<br> while looking purposefully at the cursor.<br> Both clicks and cursor movements<br> make the predictions more accurate.
+            </h1>
+            <!--<img src="me.png" id="me"></img>-->
+        </div>
+        <div id="test"></div>
+
+
+        <script src="build/webgazer.js"></script>
+        <script src="js/broadcast.js"></script>
+        <script type="text/javascript" src="js/calibrator.js"></script>>
+        <script>
+            window.onload = function() {
+
+                webgazer.setRegression('ridge') /* currently must set regression and tracker */
+                    .setTracker('js_feat')
+                    .setGazeListener(function(data, clock) {
+                        //   console.log(data); /* data is an object containing an x and y key which are the x and y prediction coordinates (no bounds limiting) */
+                        //   console.log(clock); /* elapsed time in milliseconds since webgazer.begin() was called */
+                    })
+                    .begin()
+                    .showPredictionPoints(true); /* shows a square every 100 milliseconds where current prediction is */
+
+                var width = 320;
+                var height = 240;
+                var topDist = '0px';
+                var leftDist = '0px';
+
+                var setup = function() {
+                    var video = document.getElementById('webgazerVideoFeed');
+                    video.style.display = 'block';
+                    video.style.position = 'absolute';
+                    video.style.top = topDist;
+                    video.style.left = leftDist;
+                    video.width = width;
+                    video.height = height;
+                    video.style.margin = '0px';
+
+                    webgazer.params.imgWidth = width;
+                    webgazer.params.imgHeight = height;
+
+                    var overlay = document.createElement('canvas');
+                    overlay.id = 'overlay';
+                    overlay.style.position = 'absolute';
+                    overlay.width = width;
+                    overlay.height = height;
+                    overlay.style.top = topDist;
+                    overlay.style.left = leftDist;
+                    overlay.style.margin = '0px';
+
+                    document.body.appendChild(overlay);
+
+                    function drawLoop() {
+                        requestAnimFrame(drawLoop);
+                        overlay.getContext('2d').clearRect(0, 0, width, height);
+                        var currentEyes = webgazer.getTracker().getCurrentEyes();
+                        console.log(currentEyes);
+                        if (currentEyes) {
+                            overlay.getContext('2d').strokeRect(currentEyes.left.imagex, currentEyes.left.imagey, currentEyes.left.width, currentEyes.left.height);
+                            overlay.getContext('2d').strokeRect(currentEyes.right.imagex, currentEyes.right.imagey, currentEyes.right.width, currentEyes.right.height);
+                        }
+                    }
+                    drawLoop();
+
+
+                    
+                    var close_button = document.getElementById("close_button");
+                    close_button.addEventListener("click",trigger_calibrate);
+                    function trigger_calibrate(){
+                        
+                        close_button.style.display = 'none';
+                        do_calibrate();
+                        close_button.removeEventListener("click",trigger_calibrate);
+                    }
+
+                };
+
+                function do_calibrate() {
+                    var all_canvases = document.querySelectorAll("canvas");
+                    var all_videos = document.querySelectorAll("video");
+
+                    function hide(elm) {
+                        elm.style.visibility = "hidden";
+                    }
+
+                    function show(elm) {
+                        elm.style.visibility = "initial";
+                    }
+                    all_canvases.forEach(hide);
+                    all_videos.forEach(hide);
+
+
+                    var calibration_canvas = document.getElementById('calibration_canvas');
+                    calibration_canvas.style.display = 'initial';
+                    calibration_canvas.style.visibility = 'initial';
+                    calibration_canvas.width = window.innerWidth;
+                    calibration_canvas.height = window.innerHeight;
+                    Calibrator(calibration_canvas, 6, 5);
+                    calibration_canvas.addEventListener("calibration.finish", function() {
+                        all_canvases.forEach(show);
+                        all_videos.forEach(show);
+                        calibration_canvas.style.display = 'none';
+                    });
+                }
+
+                function checkIfReady() {
+                    if (webgazer.isReady()) {
+                        setup();
+                    }
+                    else {
+                        setTimeout(checkIfReady, 100);
+                    }
+                }
+                setTimeout(checkIfReady, 100);
+            };
+
+
+            window.onbeforeunload = function() {
+                //webgazer.end(); //Uncomment if you want to save the data even if you reload the page.
+                window.localStorage.clear(); //Comment out if you want to save data across different sessions 
+            }
+        </script>
+
+</BODY>
+
+</HTML>
