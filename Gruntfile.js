@@ -30,6 +30,7 @@ module.exports = function(grunt) {
 					'src/blinkDetector.js',
 					'src/clmGaze.js',
 					'src/trackingjsGaze.js',
+					'src/jsFeatGaze.js',
 					'src/js_objectdetectGaze.js',
 					'src/linearReg.js',
 					'src/mat.js',
