@@ -1,7 +1,7 @@
-# Clone Note
+# Fork Note
 This is just a forked version for study purpose, please checkout the original git repo for information below
 
-#--------I am the split line--------
+# --------I am the split line--------
 
 # [WebGazer.js](https://webgazer.cs.brown.edu)
 
