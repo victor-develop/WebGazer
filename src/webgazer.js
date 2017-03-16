@@ -68,6 +68,7 @@
     //lookup tables
     var curTrackerMap = {
         'clmtrackr': function() { return new webgazer.tracker.ClmGaze(); },
+        'js_feat': function(){ return new webgazer.tracker.jsFeatGaze() },
         'trackingjs': function() { return new webgazer.tracker.TrackingjsGaze(); },
         'js_objectdetect': function() { return new webgazer.tracker.Js_objectdetectGaze(); }
     };
