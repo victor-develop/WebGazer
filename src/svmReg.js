@@ -5,18 +5,19 @@
     webgazer.mat = webgazer.mat || {};
     webgazer.util = webgazer.util || {};
     webgazer.params = webgazer.params || {};
+    window.svm = window.svm || new svmjs.SVM();
 
-    var ridgeParameter = Math.pow(10,-5);
+    var svmParameter = Math.pow(10,0);
     var resizeWidth = 10;
     var resizeHeight = 6;
     var dataWindow = 700;
     var trailDataWindow = 10;
 
     /**
-     * Performs ridge regression, according to the Weka code.
+     * Performs svm regression, according to the Weka code.
      * @param {Array} y - corresponds to screen coordinates (either x or y) for each of n click events
      * @param {Array.<Array.<Number>>} X - corresponds to gray pixel features (120 pixels for both eyes) for each of n clicks
-     * @param {Array} k - ridge parameter
+     * @param {Array} k - svm parameter
      * @return{Array} regression coefficients
      */
     function ridge(y, X, k){
@@ -27,7 +28,7 @@
         var success = true;
         do{
             var ss = webgazer.mat.mult(xt,X);
-            // Set ridge regression adjustment
+            // Set svm regression adjustment
             for (var i = 0; i < nc; i++) {
                 ss[i][i] = ss[i][i] + k;
             }
@@ -103,10 +104,10 @@
 
     /**
      * Constructor of RidgeReg object,
-     * this object allow to perform ridge regression
+     * this object allow to perform svm regression
      * @constructor
      */
-    webgazer.reg.RidgeReg = function() {
+    webgazer.reg.SvmReg = function() {
         this.screenXClicksArray = new webgazer.util.DataWindow(dataWindow);
         this.screenYClicksArray = new webgazer.util.DataWindow(dataWindow);
         this.eyeFeaturesClicks = new webgazer.util.DataWindow(dataWindow);
@@ -129,7 +130,7 @@
      * @param {Object} screenPos - The current screen point
      * @param {Object} type - The type of performed action
      */
-    webgazer.reg.RidgeReg.prototype.addData = function(eyes, screenPos, type) {
+    webgazer.reg.SvmReg.prototype.addData = function(eyes, screenPos, type) {
         if (!eyes) {
             return;
         }
@@ -137,14 +138,14 @@
             return;
         }
         if (type === 'click') {
-            this.screenXClicksArray.push([screenPos[0]]);
-            this.screenYClicksArray.push([screenPos[1]]);
+            this.screenXClicksArray.push(screenPos[0]);
+            this.screenYClicksArray.push(screenPos[1]);
 
             this.eyeFeaturesClicks.push(getEyeFeats(eyes));
             this.dataClicks.push({'eyes':eyes, 'screenPos':screenPos, 'type':type});
         } else if (type === 'move') {
-            this.screenXTrailArray.push([screenPos[0]]);
-            this.screenYTrailArray.push([screenPos[1]]);
+            this.screenXTrailArray.push(screenPos[0]);
+            this.screenYTrailArray.push(screenPos[1]);
 
             this.eyeFeaturesTrail.push(getEyeFeats(eyes));
             this.trailTimes.push(performance.now());
@@ -161,7 +162,7 @@
      * @param {Object} eyesObj - The current user eyes object
      * @returns {Object}
      */
-    webgazer.reg.RidgeReg.prototype.predict = function(eyesObj) {
+    webgazer.reg.SvmReg.prototype.predict = function(eyesObj) {
         if (!eyesObj || this.eyeFeaturesClicks.length == 0) {
             return null;
         }
@@ -180,21 +181,37 @@
         var screenXArray = this.screenXClicksArray.data.concat(trailX);
         var screenYArray = this.screenYClicksArray.data.concat(trailY);
         var eyeFeatures = this.eyeFeaturesClicks.data.concat(trailFeat);
-        var coefficientsX = ridge(screenXArray, eyeFeatures, ridgeParameter);
-        var coefficientsY = ridge(screenYArray, eyeFeatures, ridgeParameter);
 
-        var eyeFeats = getEyeFeats(eyesObj);
-        var predictedX = 0;
-        for(var i=0; i< eyeFeats.length; i++){
-            predictedX += eyeFeats[i] * coefficientsX[i];
-        }
-        var predictedY = 0;
-        for(var i=0; i< eyeFeats.length; i++){
-            predictedY += eyeFeats[i] * coefficientsY[i];
-        }
+        window.svm = new svmjs.SVM();
+        // var predictedX = svm.train(eyeFeatures, screenXArray, {C: 1.0});
+        
+        // console.log(eyeFeatures);
+        // console.log(screenXArray);
+        
+        var predictedX = 100;
+        var predictedY = 100;
+        console.log("predict");
+        
+        console.log(eyeFeatures);
+        console.log(screenYArray);
+        // svm.train(eyeFeatures, screenYArray, {C: 1.0});
+        //console.log(svm.predict([eyeFeats]))[0];
 
-        predictedX = Math.floor(predictedX);
-        predictedY = Math.floor(predictedY);
+        // var coefficientsX = ridge(screenXArray, eyeFeatures, svmParameter);
+        // var coefficientsY = ridge(screenYArray, eyeFeatures, svmParameter);
+
+        // var eyeFeats = getEyeFeats(eyesObj);
+        // var predictedX = 0;
+        // for(var i=0; i< eyeFeats.length; i++){
+        //     predictedX += eyeFeats[i] * coefficientsX[i];
+        // }
+        // var predictedY = 0;
+        // for(var i=0; i< eyeFeats.length; i++){
+        //     predictedY += eyeFeats[i] * coefficientsY[i];
+        // }
+
+        // predictedX = Math.floor(predictedX);
+        // predictedY = Math.floor(predictedY);
 
         return {
             x: predictedX,
@@ -207,28 +224,11 @@
      * replace current data member with given data
      * @param {Array.<Object>} data - The data to set
      */
-    webgazer.reg.RidgeReg.prototype.setData = function(data) {
-        
-        var makePatchData = function makePatchData(single_eye){
-            var array_like_obj = single_eye.patch;
-            var i_data = new ImageData(single_eye.width, single_eye.height);
-            
-            for (var index in array_like_obj ){
-                i_data.data[index] = array_like_obj[index];
-            }
-            return i_data;
-        }
-        
+    webgazer.reg.SvmReg.prototype.setData = function(data) {
         for (var i = 0; i < data.length; i++) {
             //TODO this is a kludge, needs to be fixed
-            data[i].eyes.left.width = Math.ceil(data[i].eyes.left.width);
-            data[i].eyes.left.height= Math.ceil(data[i].eyes.left.height);
-            data[i].eyes.left.patch = makePatchData(data[i].eyes.left);
-            
-            data[i].eyes.right.width = Math.ceil(data[i].eyes.right.width);
-            data[i].eyes.right.height= Math.ceil(data[i].eyes.right.height);            
-            data[i].eyes.right.patch = makePatchData(data[i].eyes.right);
-            
+            data[i].eyes.left.patch = new ImageData(new Uint8ClampedArray(data[i].eyes.left.patch), data[i].eyes.left.width, data[i].eyes.left.height);
+            data[i].eyes.right.patch = new ImageData(new Uint8ClampedArray(data[i].eyes.right.patch), data[i].eyes.right.width, data[i].eyes.right.height);
             this.addData(data[i].eyes, data[i].screenPos, data[i].type);
         }
     };
@@ -237,7 +237,7 @@
      * Return the data
      * @returns {Array.<Object>|*}
      */
-    webgazer.reg.RidgeReg.prototype.getData = function() {
+    webgazer.reg.SvmReg.prototype.getData = function() {
         return this.dataClicks.data.concat(this.dataTrail.data);
     }
     
@@ -245,6 +245,6 @@
      * The RidgeReg object name
      * @type {string}
      */
-    webgazer.reg.RidgeReg.prototype.name = 'ridge';
+    webgazer.reg.SvmReg.prototype.name = 'svm';
     
 }(window));

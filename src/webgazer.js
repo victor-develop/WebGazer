@@ -73,6 +73,7 @@
         'js_objectdetect': function() { return new webgazer.tracker.Js_objectdetectGaze(); }
     };
     var regressionMap = {
+        'svm': function() { return new webgazer.reg.SvmReg(); },
         'ridge': function() { return new webgazer.reg.RidgeReg(); },
         'weightedRidge': function() { return new webgazer.reg.RidgeWeightedReg(); },
         'threadedRidge': function() { return new webgazer.reg.RidgeRegThreaded(); },
@@ -185,6 +186,7 @@
         }
 
         if (!paused) {
+            //setTimeout(loop, 1000);
             //setTimeout(loop, webgazer.params.dataTimestep);
             requestAnimationFrame(loop);
         }
@@ -245,7 +247,7 @@
         //third argument set to true so that we get event on 'capture' instead of 'bubbling'
         //this prevents a client using event.stopPropagation() preventing our access to the click
         document.addEventListener('click', clickListener, true);
-        document.addEventListener('mousemove', moveListener, true);
+        //document.addEventListener('mousemove', moveListener, true);
     };
 
     /**
@@ -265,6 +267,22 @@
         var storage = JSON.parse(window.localStorage.getItem(localstorageLabel)) || defaults;
         settings = storage.settings;
         data = storage.data;
+        
+        var turn2array = function(obj){
+            var output = [];
+            for (var i in obj) {
+                output.push(obj[i]);
+            }
+            return output;
+        }
+   /*     
+        console.log(data);
+        
+        for (var i = 0; i < data.length; i++) {
+            data[i].eyes.left.patch = turn2array(data[i].eyes.left.patch);
+            data[i].eyes.right.patch = turn2array(data[i].eyes.right.patch);
+        }
+    */    
         for (var reg in regs) {
             regs[reg].setData(storage.data);
         }
@@ -274,6 +292,7 @@
     * Constructs the global storage object and adds it to local storage
     */
     function setGlobalData() {
+
         var storage = {
             'settings': settings,
             'data': regs[0].getData() || data

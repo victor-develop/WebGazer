@@ -18,6 +18,7 @@
 ../dependencies/clmtrackr/svmfilter_webgl.js
 ../dependencies/clmtrackr/svmfilter_fft.js
 ../dependencies/clmtrackr/mossefilter.js
+../dependencies/svm/lib/svm.js
 ../src/blinkDetector.js
 ../src/clmGaze.js
 ../src/trackingjsGaze.js
@@ -28,6 +29,7 @@
 ../src/pupil.js
 ../src/regression.js
 ../src/ridgeReg.js
+../src/svmReg.js
 ../src/ridgeWeightedReg.js
 ../src/ridgeRegThreaded.js
 ../src/util.js

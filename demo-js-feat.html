@@ -104,7 +104,7 @@
                         requestAnimFrame(drawLoop);
                         overlay.getContext('2d').clearRect(0, 0, width, height);
                         var currentEyes = webgazer.getTracker().getCurrentEyes();
-                        console.log(currentEyes);
+                        //console.log(currentEyes);
                         if (currentEyes) {
                             overlay.getContext('2d').strokeRect(currentEyes.left.imagex, currentEyes.left.imagey, currentEyes.left.width, currentEyes.left.height);
                             overlay.getContext('2d').strokeRect(currentEyes.right.imagex, currentEyes.right.imagey, currentEyes.right.width, currentEyes.right.height);
