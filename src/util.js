@@ -311,4 +311,31 @@
       return transpose(mult(this.H, this.X))[0]; //Transforms the predicted state back into it's measurement form
     }
 
+
+    /**
+     * Converted a previously stored text-based eye object back to ImageData-based
+     * @param eyes data, where patch is text array but not ImageData
+     * @return the modified eyes object, where patch is turned to ImageData
+     */
+    self.webgazer.util.adaptStoredEyes = function adaptStoredEyes(eyes){
+            var makePatchData = function makePatchData(single_eye){
+                var array_like_obj = single_eye.patch;
+                var i_data = new ImageData(single_eye.width, single_eye.height);
+                
+                for (var index in array_like_obj ){
+                    i_data.data[index] = array_like_obj[index];
+                }
+                return i_data;
+            }   
+            
+            eyes.left.width = Math.ceil(eyes.left.width);
+            eyes.left.height= Math.ceil(eyes.left.height);
+            eyes.left.patch = makePatchData(eyes.left);
+
+            eyes.right.width = Math.ceil(eyes.right.width);
+            eyes.right.height= Math.ceil(eyes.right.height);            
+            eyes.right.patch = makePatchData(eyes.right);   
+            
+            return eyes;
+        }   
 }());

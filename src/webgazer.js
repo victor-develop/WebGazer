@@ -89,9 +89,50 @@
         'data': [],
         'settings': {}
     };
-
     
-    //PRIVATE FUNCTIONS
+    // additional image processors which process eyes patches
+    // an eyeimage processor must has a function named as `process`: (Imagedata,width, height) => Imagedata
+    var eyeImageProcessors = [];
+
+    /**
+     * Isolates the two patches that correspond to the user's eyes, with Blink Filter
+     * @param  {Canvas} imageCanvas - canvas corresponding to the webcam stream
+     * @param  {Number} width - of imageCanvas
+     * @param  {Number} height - of imageCanvas
+     * @return {Object} the two eye-patches, first left, then right eye
+     */
+    function getEyePatchesWithBlinkFilter(canvas, width, height){
+        try {
+            
+            var eyeObj = blinkDetector.detectBlink(curTracker.getEyePatches(canvas, width, height));
+            
+            //return image data patch
+            function processEye(singleEye, processor){
+                return processor.process(
+                  singleEye.left.patch,
+                  singleEye.width,
+                  singleEye.height
+                );
+            }
+            
+            function processEyes(eyeObj, processor){
+                eyeObj.left.patch = processEye(eyeObj.left, processor);
+                eyeObj.right.patch = processEye(eyeObj.right, processor)
+            }
+            
+            if(eyeObj&&eyeObj.left&&eyeObj.right){
+                for(var idx in eyeImageProcessors){
+                    processEyes(eyeObj, eyeImageProcessors[idx]);
+                }                
+            }
+            
+            return eyeObj;
+            
+        } catch(err) {
+            console.log(err);
+            return null;
+        }        
+    }
 
     /**
      * Gets the pupil features by following the pipeline which threads an eyes object through each call:
@@ -105,12 +146,7 @@
             return;
         }
         paintCurrentFrame(canvas, width, height);
-        try {
-            return blinkDetector.detectBlink(curTracker.getEyePatches(canvas, width, height));
-        } catch(err) {
-            console.log(err);
-            return null;
-        }
+        return getEyePatchesWithBlinkFilter(canvas, width, height);
     }
 
     /**
@@ -182,6 +218,7 @@
                 y += smoothingVals.get(d).y;
             }
             var pred = webgazer.util.bound({'x':x/len, 'y':y/len});
+
             gazeDot.style.transform = 'translate3d(' + pred.x + 'px,' + pred.y + 'px,0)';
         }
 
@@ -191,6 +228,8 @@
             requestAnimationFrame(loop);
         }
     }
+    
+
 
     /**
      * Records screen position data based on current pupil feature and passes it
@@ -204,6 +243,18 @@
         if (paused) {
             return;
         }
+        
+        if(window.simpleBroadcast){
+            window.simpleBroadcast('train-image',{
+               canvas:videoElementCanvas,
+               width:webgazer.params.imgWidth,
+               height:webgazer.params.imgHeight,
+               position:[x,y]
+            });
+        } else {
+            console("Warning: please include broadcast.js to fire and receive 'train-image' event");
+        }
+        
         var features = getPupilFeatures(videoElementCanvas, webgazer.params.imgWidth, webgazer.params.imgHeight);
         if (regs.length == 0) {
             console.log('regression not set, call setRegression()');
@@ -261,7 +312,7 @@
     };
 
     /**
-     * Loads the global data and passes it to the regression model
+     * Loads the global data and passes it to the regression model, deprecated. remained for backward compatibility
      */
     function loadGlobalData() {
         var storage = JSON.parse(window.localStorage.getItem(localstorageLabel)) || defaults;
@@ -275,17 +326,23 @@
             }
             return output;
         }
-   /*     
-        console.log(data);
         
-        for (var i = 0; i < data.length; i++) {
-            data[i].eyes.left.patch = turn2array(data[i].eyes.left.patch);
-            data[i].eyes.right.patch = turn2array(data[i].eyes.right.patch);
-        }
-    */    
         for (var reg in regs) {
             regs[reg].setData(storage.data);
         }
+    }
+    
+    //note this will modifed the input, becareful!
+    webgazer.loadStoredData = function(dataToLoad){
+        setRegData(regs[0]);
+        //------------------------------
+        function setRegData(reg){
+            for (var i = 0; i < dataToLoad.length; i++) {
+                dataToLoad[i].eyes = webgazer.util.adaptStoredEyes(dataToLoad[i].eyes);
+                reg.addData(dataToLoad[i].eyes, dataToLoad[i].screenPos, dataToLoad[i].type);
+            }
+        }
+             
     }
 
    /**
@@ -297,11 +354,41 @@
             'settings': settings,
             'data': regs[0].getData() || data
         };
-        window.localStorage.setItem(localstorageLabel, JSON.stringify(storage));
-        //TODO data should probably be stored in webgazer object instead of each regression model
-        //     -> requires duplication of data, but is likely easier on regression model implementors
+        
+        if(webgazer.saveData){
+           return webgazer.saveData(JSON.stringify(storage));
+        }
+        
     }
-
+    
+    webgazer.manualTrain = function(canvas, x, y){
+        var features = getEyePatchesWithBlinkFilter(canvas, canvas.width, canvas.height);
+        if (regs.length == 0) {
+            console.log('regression not set, call setRegression()');
+            return null;
+        }
+        for (var reg in regs) {
+            regs[reg].addData(features, [x, y], 'click');
+        }        
+    }
+    
+    webgazer.manualPredict = function(canvas){
+        var features = getEyePatchesWithBlinkFilter(canvas, canvas.width, canvas.height);
+        var predictions = [];
+        for (var reg in regs) {
+            predictions.push(regs[reg].predict(features));
+        }
+        return predictions;
+    }
+    
+    webgazer.getData = function getData(){
+        return regs[0].getData() || data;
+    }
+    
+    webgazer.setSaveFunc = function setSaveFunc(func){
+        webgazer.saveData = func;
+    }
+    
     /**
      * Clears data from model and global storage
      */
@@ -433,8 +520,12 @@
         //loop may run an extra time and fail due to removed elements
         paused = true;
         //remove video element and canvas
-        document.body.removeChild(videoElement);
-        document.body.removeChild(videoElementCanvas);
+        try {
+            document.body.removeChild(videoElement);
+            document.body.removeChild(videoElementCanvas);            
+        } catch (e) {
+            console.log(e);
+        }
 
         setGlobalData();
         return webgazer;
@@ -525,6 +616,10 @@
         curTracker = curTrackerMap[name]();
         return webgazer;
     };
+    
+    webgazer.pushEyeProcessor = function pushEyeProcessor(processor){
+        eyeImageProcessors.push(processor);
+    }
 
     /**
      * Sets the regression module and clears any other regression modules
@@ -543,6 +638,21 @@
         data = regs[0].getData();
         regs = [regressionMap[name]()];
         regs[0].setData(data);
+        return webgazer;
+    };
+    
+    webgazer.resetRegression = function(name) {
+        if (regressionMap[name] == undefined) {
+            console.log('Invalid regression selection');
+            console.log('Options are: ');
+            for (var reg in regressionMap) {
+                console.log(reg);
+            }
+            return webgazer;
+        }
+        //reset data and regs
+        regs = [regressionMap[name]()];
+        data = regs[0].getData();
         return webgazer;
     };
 

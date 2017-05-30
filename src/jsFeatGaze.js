@@ -97,13 +97,10 @@
             canvasHeight = canvas.height;
 
             var max_work_size = 160;
-
-            // var w = canvas.width;
-            // var h = canvas.height;
             
-                        var scale = Math.min(max_work_size / canvasWidth, max_work_size / canvasWidth);
-                        var w = (canvasWidth * scale) | 0;
-                        var h = (canvasHeight * scale) | 0;
+            var scale = Math.min(max_work_size / canvasWidth, max_work_size / canvasWidth);
+            var w = (canvasWidth * scale) | 0;
+            var h = (canvasHeight * scale) | 0;
             
             img_u8 = new jsfeat.matrix_t(w, h, jsfeat.U8_t | jsfeat.C1_t);
             edg = new jsfeat.matrix_t(w, h, jsfeat.U8_t | jsfeat.C1_t);

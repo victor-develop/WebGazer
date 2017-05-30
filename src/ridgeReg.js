@@ -209,26 +209,31 @@
      */
     webgazer.reg.RidgeReg.prototype.setData = function(data) {
         
-        var makePatchData = function makePatchData(single_eye){
-            var array_like_obj = single_eye.patch;
-            var i_data = new ImageData(single_eye.width, single_eye.height);
+        var adaptStoredEyes = function adaptStoredEyes(eyes){
             
-            for (var index in array_like_obj ){
-                i_data.data[index] = array_like_obj[index];
-            }
-            return i_data;
+            var makePatchData = function makePatchData(single_eye){
+                var array_like_obj = single_eye.patch;
+                var i_data = new ImageData(single_eye.width, single_eye.height);
+                
+                for (var index in array_like_obj ){
+                    i_data.data[index] = array_like_obj[index];
+                }
+                return i_data;
+            }   
+            
+            eyes.left.width = Math.ceil(eyes.left.width);
+            eyes.left.height= Math.ceil(eyes.left.height);
+            eyes.left.patch = makePatchData(eyes.left);
+            
+            eyes.right.width = Math.ceil(eyes.right.width);
+            eyes.right.height= Math.ceil(eyes.right.height);            
+            eyes.right.patch = makePatchData(eyes.right);   
+            
+            return eyes;
         }
         
         for (var i = 0; i < data.length; i++) {
-            //TODO this is a kludge, needs to be fixed
-            data[i].eyes.left.width = Math.ceil(data[i].eyes.left.width);
-            data[i].eyes.left.height= Math.ceil(data[i].eyes.left.height);
-            data[i].eyes.left.patch = makePatchData(data[i].eyes.left);
-            
-            data[i].eyes.right.width = Math.ceil(data[i].eyes.right.width);
-            data[i].eyes.right.height= Math.ceil(data[i].eyes.right.height);            
-            data[i].eyes.right.patch = makePatchData(data[i].eyes.right);
-            
+            data[i].eyes = adaptStoredEyes(data[i].eyes);
             this.addData(data[i].eyes, data[i].screenPos, data[i].type);
         }
     };

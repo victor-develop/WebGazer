@@ -35925,14 +35925,6 @@ function text2sparsevector( str, dictionnary, multi ) {
 
     
     //PRIVATE FUNCTIONS
-    function getEyePatchesWithBlinkFilter(canvas, width, height){
-        try {
-            return blinkDetector.detectBlink(curTracker.getEyePatches(canvas, width, height));
-        } catch(err) {
-            console.log(err);
-            return null;
-        }        
-    }
 
     /**
      * Gets the pupil features by following the pipeline which threads an eyes object through each call:
@@ -35946,7 +35938,12 @@ function text2sparsevector( str, dictionnary, multi ) {
             return;
         }
         paintCurrentFrame(canvas, width, height);
-        return getEyePatchesWithBlinkFilter(canvas, width, height);
+        try {
+            return blinkDetector.detectBlink(curTracker.getEyePatches(canvas, width, height));
+        } catch(err) {
+            console.log(err);
+            return null;
+        }
     }
 
     /**
@@ -36028,8 +36025,6 @@ function text2sparsevector( str, dictionnary, multi ) {
             requestAnimationFrame(loop);
         }
     }
-    
-
 
     /**
      * Records screen position data based on current pupil feature and passes it
@@ -36043,18 +36038,6 @@ function text2sparsevector( str, dictionnary, multi ) {
         if (paused) {
             return;
         }
-        
-        if(window.simpleBroadcast){
-            window.simpleBroadcast('train-image',{
-               canvas:videoElementCanvas,
-               width:webgazer.params.imgWidth,
-               height:webgazer.params.imgHeight,
-               position:[x,y]
-            });
-        } else {
-            console("Warning: please include broadcast.js to fire and receive 'train-image' event");
-        }
-        
         var features = getPupilFeatures(videoElementCanvas, webgazer.params.imgWidth, webgazer.params.imgHeight);
         if (regs.length == 0) {
             console.log('regression not set, call setRegression()');
@@ -36159,26 +36142,6 @@ function text2sparsevector( str, dictionnary, multi ) {
            return webgazer.saveData(JSON.stringify(storage));
         }
         
-    }
-    
-    webgazer.manualTrain = function(canvas, x, y){
-        var features = getEyePatchesWithBlinkFilter(canvas, canvas.width, canvas.height);
-        if (regs.length == 0) {
-            console.log('regression not set, call setRegression()');
-            return null;
-        }
-        for (var reg in regs) {
-            regs[reg].addData(features, [x, y], 'click');
-        }        
-    }
-    
-    webgazer.manualPredict = function(canvas){
-        var features = getEyePatchesWithBlinkFilter(canvas, canvas.width, canvas.height);
-        var predictions = [];
-        for (var reg in regs) {
-            predictions.push(regs[reg].predict(features));
-        }
-        return predictions;
     }
     
     webgazer.getData = function getData(){
@@ -36434,21 +36397,6 @@ function text2sparsevector( str, dictionnary, multi ) {
         data = regs[0].getData();
         regs = [regressionMap[name]()];
         regs[0].setData(data);
-        return webgazer;
-    };
-    
-    webgazer.resetRegression = function(name) {
-        if (regressionMap[name] == undefined) {
-            console.log('Invalid regression selection');
-            console.log('Options are: ');
-            for (var reg in regressionMap) {
-                console.log(reg);
-            }
-            return webgazer;
-        }
-        //reset data and regs
-        regs = [regressionMap[name]()];
-        data = regs[0].getData();
         return webgazer;
     };
 

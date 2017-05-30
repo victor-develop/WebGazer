@@ -5,7 +5,6 @@
     webgazer.mat = webgazer.mat || {};
     webgazer.util = webgazer.util || {};
     webgazer.params = webgazer.params || {};
-    window.svm = window.svm || new svmjs.SVM();
 
     var svmParameter = Math.pow(10,0);
     var resizeWidth = 10;
@@ -182,36 +181,28 @@
         var screenYArray = this.screenYClicksArray.data.concat(trailY);
         var eyeFeatures = this.eyeFeaturesClicks.data.concat(trailFeat);
 
-        window.svm = new svmjs.SVM();
-        // var predictedX = svm.train(eyeFeatures, screenXArray, {C: 1.0});
+        var svrX = new Regression(SVR, {kernel: "rbf", epsilon: 0.3});
+        var svrY = new Regression(SVR, {kernel: "rbf", epsilon: 0.3});
         
-        // console.log(eyeFeatures);
-        // console.log(screenXArray);
+        // var predictedX = 100;
+        // var predictedY = 100;
         
-        var predictedX = 100;
-        var predictedY = 100;
-        console.log("predict");
+        svrX.train(array2mat(eyeFeatures), screenXArray);
+        svrY.train(array2mat(eyeFeatures), screenYArray);
+
+        var eyeFeats = getEyeFeats(eyesObj);
         
         console.log(eyeFeatures);
         console.log(screenYArray);
-        // svm.train(eyeFeatures, screenYArray, {C: 1.0});
-        //console.log(svm.predict([eyeFeats]))[0];
+        console.log(eyeFeats);
+        
+        var predictedX = svrX.predict(eyeFeats);
+        var predictedY = svrY.predict(eyeFeats);
 
-        // var coefficientsX = ridge(screenXArray, eyeFeatures, svmParameter);
-        // var coefficientsY = ridge(screenYArray, eyeFeatures, svmParameter);
+        console.log(predictedY);
 
-        // var eyeFeats = getEyeFeats(eyesObj);
-        // var predictedX = 0;
-        // for(var i=0; i< eyeFeats.length; i++){
-        //     predictedX += eyeFeats[i] * coefficientsX[i];
-        // }
-        // var predictedY = 0;
-        // for(var i=0; i< eyeFeats.length; i++){
-        //     predictedY += eyeFeats[i] * coefficientsY[i];
-        // }
-
-        // predictedX = Math.floor(predictedX);
-        // predictedY = Math.floor(predictedY);
+        predictedX = Math.floor(predictedX);
+        predictedY = Math.floor(predictedY);
 
         return {
             x: predictedX,
