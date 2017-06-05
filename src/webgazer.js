@@ -109,7 +109,7 @@
             //return image data patch
             function processEye(singleEye, processor){
                 return processor.process(
-                  singleEye.left.patch,
+                  singleEye.patch,
                   singleEye.width,
                   singleEye.height
                 );
@@ -133,6 +133,8 @@
             return null;
         }        
     }
+    
+    webgazer.getProcessedEyes = getEyePatchesWithBlinkFilter;
 
     /**
      * Gets the pupil features by following the pipeline which threads an eyes object through each call:
@@ -619,6 +621,7 @@
     
     webgazer.pushEyeProcessor = function pushEyeProcessor(processor){
         eyeImageProcessors.push(processor);
+        return webgazer;
     }
 
     /**
