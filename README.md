@@ -1,5 +1,5 @@
 # Fork Note
-This is just a forked version for study purpose, please checkout the original git repo for information below
+This is just a forked version for study purpose, please checkout the original git repo for information below. This repo is a customized version, where its eye-region locator was solely done by js-feat.
 
 # [WebGazer.js](https://webgazer.cs.brown.edu)
 
